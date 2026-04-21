@@ -47,7 +47,7 @@ export function useChat({ onResponse, onDisplay, onMood, selectedModelId }: UseC
         // Parse dual-language JSON from persona (japanese + english + mood)
         let ttsText = raw
         let displayText = raw
-        let mood = 'neutral'
+        let mood = 'neutral' // VRM expression name
         let moodIntensity = 0.5
         try {
           const parsed = JSON.parse(raw) as { japanese?: string; english?: string; mood?: string; mood_intensity?: number }

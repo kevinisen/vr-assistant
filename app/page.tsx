@@ -183,31 +183,12 @@ export default function Home() {
           ))}
         </select>
 
-        {/* ── Affichage du Mood ───────────────────────────────────────────── */}
-        {moodData && (
-          <div style={{
-            background: 'rgba(15, 23, 42, 0.55)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(99,102,241,0.5)',
-            borderRadius: 12,
-            color: '#94a3b8',
-            fontSize: 12,
-            padding: '8px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-            <span>🎭 Mood : {moodData.mood}</span>
-            <span style={{ opacity: 0.7 }}>({Math.round(moodData.intensity * 100)}%)</span>
-          </div>
-        )}
       </div>
 
       {/* ── Boutons de test Mood (right) ─────────────────────────────────── */}
       <div style={{ position: 'absolute', top: 120, right: 20, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
         <span style={{color: '#94a3b8', fontSize: 11, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5}}>Test Animations</span>
-        {['neutral', 'joy', 'fun', 'angry', 'sorrow', 'surprised'].map(mood => (
+        {['neutral', 'happy', 'relaxed', 'angry', 'sad', 'surprised'].map(mood => (
           <button
             key={mood}
             onClick={() => setMoodData({ mood, intensity: 1.0 })}

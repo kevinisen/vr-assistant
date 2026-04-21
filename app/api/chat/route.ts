@@ -93,7 +93,7 @@ const GEMINI_MODELS = ['gemini-3.1-flash-lite-preview', 'gemini-2.0-flash-lite',
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
-  const { allowed, remaining } = checkRateLimit(ip)
+  const { allowed } = checkRateLimit(ip)
   if (!allowed) {
     return NextResponse.json(
       { error: 'Limite quotidienne atteinte (12 messages/jour). Reviens demain !' },
@@ -102,7 +102,6 @@ export async function POST(req: NextRequest) {
   }
 
   const { messages, modelId } = (await req.json()) as { messages: ChatMessage[]; modelId?: string }
-  void remaining // disponible si on veut l'envoyer dans les headers plus tard
 
   const groqKey     = process.env.GROQ_API_KEY
   const geminiKey   = process.env.GEMINI_API_KEY

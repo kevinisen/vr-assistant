@@ -20,7 +20,6 @@ function Loader() {
   )
 }
 
-// ── Repositionne la caméra sur la tête du modèle ─────────────────────────────
 function CameraRig({ headY }: { headY: number }) {
   const { camera } = useThree()
   const controlsRef = useRef<any>(null)
@@ -43,7 +42,7 @@ function CameraRig({ headY }: { headY: number }) {
       maxDistance={4}
       enablePan={false}
       enableRotate={false}
-      enableZoom={false}
+      enableZoom={true}
     />
   )
 }
@@ -59,7 +58,6 @@ interface Props {
 export function VrmExperience({ visemeValuesRef, isSpeaking, processFrame, modelPath, moodData }: Props) {
   const [headY, setHeadY] = useState(1.38)
 
-  // Reset à la valeur par défaut lors du changement de modèle
   useEffect(() => { setHeadY(1.38) }, [modelPath])
 
   return (
@@ -72,17 +70,14 @@ export function VrmExperience({ visemeValuesRef, isSpeaking, processFrame, model
         gl.toneMappingExposure = 0.85
       }}
     >
-      {/* Ambiante légère pour éviter les ombres trop dures */}
       <ambientLight color="#ffffff" intensity={0.3} />
 
-      {/* Portrait light : face au modèle, légèrement au-dessus, ciblée sur la tête */}
       <directionalLight
         position={[0, headY - 0.5, 3]}
         target-position={[0, headY, 0]}
         color={0xfff5e6}
         intensity={2.5}
       />
-
 
       <Suspense fallback={<Loader />}>
         <FemaleAvatar

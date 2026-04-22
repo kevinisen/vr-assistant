@@ -146,7 +146,8 @@ export default function Home() {
         {/* Modèle 3D */}
         <select
           value={selectedModelPath}
-          onChange={(e) => setSelectedModelPath(e.target.value)}
+          disabled={chatBusy}
+          onChange={(e) => { if (!chatBusy) { setSelectedModelPath(e.target.value); chat.reset() } }}
           style={{
             background: 'rgba(15, 23, 42, 0.55)',
             backdropFilter: 'blur(12px)',
@@ -174,7 +175,7 @@ export default function Home() {
         {['neutral', 'happy', 'relaxed', 'angry', 'sad', 'surprised'].map(mood => (
           <button
             key={mood}
-            onClick={() => setMoodData({ mood, intensity: 1.0 })}
+            onClick={() => { if (!chatBusy) setMoodData({ mood, intensity: 1.0 }) }}
             style={{
               background: moodData?.mood === mood ? 'rgba(99,102,241,0.8)' : 'rgba(15, 23, 42, 0.55)',
               backdropFilter: 'blur(12px)',
@@ -183,10 +184,11 @@ export default function Home() {
               color: '#fff',
               padding: '6px 14px',
               fontSize: 12,
-              cursor: 'pointer',
               transition: 'all 0.2s',
               width: '120px',
               textAlign: 'center',
+              opacity: chatBusy ? 0.4 : 1,
+              cursor: chatBusy ? 'not-allowed' : 'pointer',
             }}
           >
             {mood}

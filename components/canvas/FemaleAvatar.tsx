@@ -35,7 +35,7 @@ export function FemaleAvatar({
   onHeadY,
   moodData,
 }: Props) {
-  const { scene } = useThree()
+  const { scene, camera } = useThree()
   const vrmRef = useRef<VRM | null>(null)
 
   // Blink state
@@ -48,6 +48,21 @@ export function FemaleAvatar({
   const surpriseOffset = useRef(0)
   const angryOffset = useRef(0)
   const happyOffset = useRef(0)
+
+  // Mouse look-at (valeurs smoothées -1..1)
+  const mouseNDC = useRef(new THREE.Vector2(0, 0))
+  const mouseSmoothed = useRef(new THREE.Vector2(0, 0))
+  const mouseWeight = useRef(1) // 1 = actif, 0 = désactivé (mood actif)
+
+  // ── Mouse tracking ────────────────────────────────────────────────────────
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      mouseNDC.current.x =  (e.clientX / window.innerWidth)  * 2 - 1
+      mouseNDC.current.y = -((e.clientY / window.innerHeight) * 2 - 1)
+    }
+    window.addEventListener('mousemove', onMouseMove)
+    return () => window.removeEventListener('mousemove', onMouseMove)
+  }, [])
 
   // ── Load VRM ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -69,8 +84,11 @@ export function FemaleAvatar({
         if (L) L.rotation.z = -Math.PI / 2.2
         if (R) R.rotation.z =  Math.PI / 2.2
 
+        // Caché jusqu'au premier frame pour éviter le flash T-pose
+        vrm.scene.visible = false
         vrmRef.current = vrm
         scene.add(vrm.scene)
+
 
         if (onHeadY) {
           vrm.scene.updateWorldMatrix(true, true)
@@ -104,8 +122,23 @@ export function FemaleAvatar({
     // 1. Process real audio lipsync
     processFrame()
 
-    // 2. Advance VRM spring bones
+    // 2. Mouse look-at — désactivé quand un mood est actif
+    const hasMood = !!moodData && moodData.mood !== 'neutral'
+    const targetWeight = hasMood ? 0 : 1
+    // Fondu lent vers 0 (0.8/s) et retour lent vers 1 (0.5/s)
+    const weightSpeed = hasMood ? 0.8 : 0.5
+    mouseWeight.current += (targetWeight - mouseWeight.current) * Math.min(delta * weightSpeed, 1)
+
+    mouseSmoothed.current.lerp(
+      hasMood ? new THREE.Vector2(0, 0) : mouseNDC.current,
+      Math.min(delta * 3, 1),
+    )
+
+    // 3. Advance VRM spring bones (lookAt appliqué ici automatiquement)
     vrm.update(delta)
+
+    // Rendre visible après le premier frame (pose de repos déjà appliquée)
+    if (!vrm.scene.visible) vrm.scene.visible = true
 
     // 3. Respiration ──────────────────────────────────────────────────────
     const t = state.clock.elapsedTime
@@ -132,13 +165,27 @@ export function FemaleAvatar({
     const a = angryOffset.current
     const h = happyOffset.current
 
+    const mx = mouseSmoothed.current.x * mouseWeight.current
+    const my = mouseSmoothed.current.y * mouseWeight.current
+
     // surprised : tête en arrière / angry : tête en avant / happy : pose chaleureuse
-    if (neck) neck.rotation.x = breath * 0.008 + s * -0.12 + a * 0.12
+    if (neck) {
+      neck.rotation.x = breath * 0.008 + s * -0.12 + a * 0.12 + my * -0.04
+      neck.rotation.y = mx * 0.06
+    }
     if (head) {
-      head.rotation.x = s * -0.05 + a * 0.05 + h * -0.122  // -7° (menton relevé)
-      head.rotation.y = 0
+      head.rotation.x = s * -0.05 + a * 0.05 + h * -0.122 + my * -0.03
+      head.rotation.y = mx * 0.04
       head.rotation.z = h * 0.1
     }
+
+    // Yeux : suivi souris léger
+    const leftEye  = vrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.LeftEye)
+    const rightEye = vrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.RightEye)
+    const eyeY = Math.max(-0.090, Math.min(0.090, mx * 0.25))
+    const eyeX = Math.max(-0.070, Math.min(0.070, my * -0.15))
+    if (leftEye)  { leftEye.rotation.y  = eyeY ; leftEye.rotation.x  = eyeX }
+    if (rightEye) { rightEye.rotation.y = eyeY ; rightEye.rotation.x = eyeX }
 
     // 5. Blink animation ─────────────────────────────────────────────────
     const deltaMs = delta * 1000

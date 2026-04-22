@@ -109,9 +109,7 @@ export async function POST(req: NextRequest) {
   const groqFallback = process.env.GROQ_MODEL_FALLBACK ?? 'openai/gpt-oss-20b'
   const geminiModel = process.env.GEMINI_MODEL_ID     ?? 'gemini-2.0-flash-lite'
 
-  const systemPrompt = personaName
-    ? SYSTEM_PROMPT.replace(/You are Yuki/g, `You are ${personaName}`).replace(/Yuki/g, personaName)
-    : SYSTEM_PROMPT
+  const systemPrompt = SYSTEM_PROMPT.replace(/\{\{NAME\}\}/g, personaName ?? 'Ichigo')
 
   const t0 = Date.now()
 

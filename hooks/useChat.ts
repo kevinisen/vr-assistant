@@ -10,9 +10,10 @@ interface UseChatOptions {
   onDisplay?: (text: string) => void
   onMood?: (data: MoodData) => void
   selectedModelId?: string
+  personaName?: string
 }
 
-export function useChat({ onResponse, onDisplay, onMood, selectedModelId }: UseChatOptions) {
+export function useChat({ onResponse, onDisplay, onMood, selectedModelId, personaName }: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isThinking, setIsThinking] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +35,7 @@ export function useChat({ onResponse, onDisplay, onMood, selectedModelId }: UseC
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: window, modelId: selectedModelId }),
+          body: JSON.stringify({ messages: window, modelId: selectedModelId, personaName }),
         })
 
         if (!res.ok) {
@@ -84,7 +85,7 @@ export function useChat({ onResponse, onDisplay, onMood, selectedModelId }: UseC
         setIsThinking(false)
       }
     },
-    [messages, onResponse, selectedModelId],
+    [messages, onResponse, selectedModelId, personaName],
   )
 
   const reset = useCallback(() => {

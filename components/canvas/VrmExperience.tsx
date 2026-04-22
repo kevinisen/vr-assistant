@@ -42,7 +42,7 @@ function CameraRig({ headY }: { headY: number }) {
       maxDistance={4}
       enablePan={false}
       enableRotate={false}
-      enableZoom={true}
+      enableZoom={false}
     />
   )
 }

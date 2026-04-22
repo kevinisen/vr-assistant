@@ -40,7 +40,7 @@ export interface ChatMessage {
 const SYSTEM_PROMPT = PERSONAS.yuki
 
 // ── Groq (format OpenAI) ─────────────────────────────────────────────────────
-async function callGroq(apiKey: string, model: string, messages: ChatMessage[]) {
+async function callGroq(apiKey: string, model: string, messages: ChatMessage[], systemPrompt: string) {
   return fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -50,7 +50,7 @@ async function callGroq(apiKey: string, model: string, messages: ChatMessage[]) 
     body: JSON.stringify({
       model,
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         // 'model' → 'assistant' pour le format OpenAI
         ...messages.map((m) => ({ role: m.role === 'model' ? 'assistant' : m.role, content: m.text })),
       ],
@@ -61,7 +61,7 @@ async function callGroq(apiKey: string, model: string, messages: ChatMessage[]) 
 }
 
 // ── Gemini ───────────────────────────────────────────────────────────────────
-async function callGemini(apiKey: string, model: string, messages: ChatMessage[]) {
+async function callGemini(apiKey: string, model: string, messages: ChatMessage[], systemPrompt: string) {
   return fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
@@ -69,7 +69,7 @@ async function callGemini(apiKey: string, model: string, messages: ChatMessage[]
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: messages.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        systemInstruction: { parts: [{ text: systemPrompt }] },
         generationConfig: { temperature: 0.7, maxOutputTokens: 600 },
       }),
     },
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { messages, modelId } = (await req.json()) as { messages: ChatMessage[]; modelId?: string }
+  const { messages, modelId, personaName } = (await req.json()) as { messages: ChatMessage[]; modelId?: string; personaName?: string }
 
   const groqKey     = process.env.GROQ_API_KEY
   const geminiKey   = process.env.GEMINI_API_KEY
@@ -109,12 +109,16 @@ export async function POST(req: NextRequest) {
   const groqFallback = process.env.GROQ_MODEL_FALLBACK ?? 'openai/gpt-oss-20b'
   const geminiModel = process.env.GEMINI_MODEL_ID     ?? 'gemini-2.0-flash-lite'
 
+  const systemPrompt = personaName
+    ? SYSTEM_PROMPT.replace(/You are Yuki/g, `You are ${personaName}`).replace(/Yuki/g, personaName)
+    : SYSTEM_PROMPT
+
   const t0 = Date.now()
 
   // ── Modèle sélectionné manuellement ─────────────────────────────────────
   if (modelId) {
     if (GROQ_MODELS.includes(modelId) && groqKey) {
-      const res = await callGroq(groqKey, modelId, messages)
+      const res = await callGroq(groqKey, modelId, messages, systemPrompt)
       if (res.ok) {
         console.log(`[Chat] ${modelId} (sélectionné) → 200 en ${Date.now() - t0}ms`)
         return NextResponse.json({ text: extractGroqText(await res.json()) })
@@ -122,7 +126,7 @@ export async function POST(req: NextRequest) {
       console.warn(`[Chat] ${modelId} → ${res.status}`)
     }
     if (GEMINI_MODELS.includes(modelId) && geminiKey) {
-      const res = await callGemini(geminiKey, modelId, messages)
+      const res = await callGemini(geminiKey, modelId, messages, systemPrompt)
       if (res.ok) {
         console.log(`[Chat] ${modelId} (sélectionné) → 200 en ${Date.now() - t0}ms`)
         return NextResponse.json({ text: extractGeminiText(await res.json()) })
@@ -134,12 +138,12 @@ export async function POST(req: NextRequest) {
   // ── Chaîne de fallback automatique ──────────────────────────────────────
   // 1. Groq principal
   if (groqKey && groqKey !== 'REMPLACE_PAR_TA_CLEF_GROQ') {
-    let res = await callGroq(groqKey, groqPrimary, messages)
+    let res = await callGroq(groqKey, groqPrimary, messages, systemPrompt)
 
     // 2. Groq fallback
     if (res.status === 503) {
       console.warn(`[Chat] ${groqPrimary} → 503, bascule sur ${groqFallback}`)
-      res = await callGroq(groqKey, groqFallback, messages)
+      res = await callGroq(groqKey, groqFallback, messages, systemPrompt)
     }
 
     if (res.ok) {
@@ -154,7 +158,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Tous les modèles sont indisponibles' }, { status: 503 })
   }
 
-  const geminiRes = await callGemini(geminiKey, geminiModel, messages)
+  const geminiRes = await callGemini(geminiKey, geminiModel, messages, systemPrompt)
   if (!geminiRes.ok) {
     const detail = await geminiRes.text()
     console.error(`[Chat] Gemini → ${geminiRes.status}`, detail)

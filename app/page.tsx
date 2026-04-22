@@ -20,10 +20,10 @@ const MODELS = [
 ]
 
 const VRM_MODELS = [
-  { path: '/models/male-assistant.vrm',      label: 'Male Assistant',    gender: 'male' },
-  { path: '/models/female_assistant_1.vrm',  label: 'Female Assistant 1', gender: 'female' },
-  { path: '/models/female_assistant_2.vrm',  label: 'Female Assistant 2', gender: 'female' },
-  { path: '/models/female_assistant_3.vrm',  label: 'Female Assistant 3', gender: 'female' },
+  { path: '/models/male-assistant.vrm',      label: 'Ichigo',    gender: 'male',   personaName: 'Ichigo' },
+  { path: '/models/female_assistant_1.vrm',  label: 'Momo',      gender: 'female', personaName: 'Momo' },
+  { path: '/models/female_assistant_2.vrm',  label: 'Sumire',    gender: 'female', personaName: 'Sumire' },
+  { path: '/models/female_assistant_3.vrm',  label: 'Usa-Chan',  gender: 'female', personaName: 'Usa-Chan' },
 ]
 
 export default function Home() {
@@ -36,7 +36,9 @@ export default function Home() {
   // ── Model selector ───────────────────────────────────────────────────────
   const [selectedModelId, setSelectedModelId] = useState(MODELS[0].id)
   const [selectedModelPath, setSelectedModelPath] = useState(VRM_MODELS[0].path)
-  const selectedGender = VRM_MODELS.find((m) => m.path === selectedModelPath)?.gender ?? 'female'
+  const selectedModel = VRM_MODELS.find((m) => m.path === selectedModelPath) ?? VRM_MODELS[0]
+  const selectedGender = selectedModel.gender
+  const selectedPersonaName = selectedModel.personaName
 
   // ── Mood ─────────────────────────────────────────────────────────────────
   const [moodData, setMoodData] = useState<{ mood: string; intensity: number } | undefined>()
@@ -69,6 +71,7 @@ export default function Home() {
     onDisplay: (text) => { pendingBubbleRef.current = text },
     onMood: (data) => setMoodData(data),
     selectedModelId,
+    personaName: selectedPersonaName,
   })
 
   useEffect(() => {
@@ -133,31 +136,12 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── Sélecteurs (top-left) ────────────────────────────────────────── */}
+      {/* ── Sélecteurs + Expressions (top-left) ─────────────────────────── */}
       <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {/* LLM */}
-        <select
-          value={selectedModelId}
-          onChange={(e) => setSelectedModelId(e.target.value)}
-          style={{
-            background: 'rgba(15, 23, 42, 0.55)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(99,102,241,0.5)',
-            borderRadius: 12,
-            color: '#94a3b8',
-            fontSize: 12,
-            padding: '8px 12px',
-            outline: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          {MODELS.map((m) => (
-            <option key={m.id} value={m.id} style={{ background: '#0f172a' }}>
-              {m.label}
-            </option>
-          ))}
-        </select>
+        {/* Titre Assistant */}
+        <span style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>
+          Assistant
+        </span>
 
         {/* Modèle 3D */}
         <select
@@ -183,11 +167,10 @@ export default function Home() {
           ))}
         </select>
 
-      </div>
-
-      {/* ── Boutons de test Mood (right) ─────────────────────────────────── */}
-      <div style={{ position: 'absolute', top: 120, right: 20, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
-        <span style={{color: '#94a3b8', fontSize: 11, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5}}>Test Animations</span>
+        {/* Expressions */}
+        <span style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>
+          Expressions
+        </span>
         {['neutral', 'happy', 'relaxed', 'angry', 'sad', 'surprised'].map(mood => (
           <button
             key={mood}
@@ -202,8 +185,8 @@ export default function Home() {
               fontSize: 12,
               cursor: 'pointer',
               transition: 'all 0.2s',
-              width: '100px',
-              textAlign: 'center'
+              width: '120px',
+              textAlign: 'center',
             }}
           >
             {mood}
@@ -266,7 +249,7 @@ export default function Home() {
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <input
               value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
+              onChange={(e) => { setChatInput(e.target.value); setLastTranscript(null) }}
               onKeyDown={(e) => { if (e.key === 'Enter') handleChatSend() }}
               disabled={chatBusy}
               placeholder={chatBusy ? '…' : 'Écris un message…'}
@@ -292,7 +275,7 @@ export default function Home() {
                 animation: voice.isRecording ? 'mic-pulse 1s ease-in-out infinite' : undefined,
               }}
             >
-              🎙
+              {voice.isRecording ? '⏹' : '🎙'}
             </button>
             {/* Historique */}
             <button

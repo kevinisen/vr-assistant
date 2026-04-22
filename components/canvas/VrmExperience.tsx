@@ -4,6 +4,8 @@ import { Suspense, useState, useEffect, useRef } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Html, useProgress } from '@react-three/drei'
 import { useThree } from '@react-three/fiber'
+import { EffectComposer, SMAA, ToneMapping } from '@react-three/postprocessing'
+import { ToneMappingMode } from 'postprocessing'
 import * as THREE from 'three'
 import { FemaleAvatar } from './FemaleAvatar'
 import type { VRMVisemeValues } from '@/hooks/useLipsync'
@@ -66,7 +68,7 @@ export function VrmExperience({ visemeValuesRef, isSpeaking, processFrame, model
       gl={{ antialias: true, alpha: true }}
       onCreated={({ gl }) => {
         gl.setClearColor(0x000000, 0)
-        gl.toneMapping         = THREE.ACESFilmicToneMapping
+        gl.toneMapping         = THREE.NoToneMapping
         gl.toneMappingExposure = 0.85
       }}
     >
@@ -91,6 +93,11 @@ export function VrmExperience({ visemeValuesRef, isSpeaking, processFrame, model
       </Suspense>
 
       <CameraRig headY={headY} />
+
+      <EffectComposer multisampling={0} enableNormalPass={false}>
+        <SMAA />
+        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+      </EffectComposer>
     </Canvas>
   )
 }

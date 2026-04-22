@@ -158,9 +158,11 @@ export function FemaleAvatar({
     if (shoulderR) shoulderR.rotation.z =  Math.PI / 2.2 + breath *  0.018
 
     // 4. Procedural mood animations ───────────────────────────────────────
-    surpriseOffset.current += ((moodData?.mood === 'surprised' ? 1 : 0) - surpriseOffset.current) * Math.min(delta * 6, 1)
-    angryOffset.current    += ((moodData?.mood === 'angry'     ? 1 : 0) - angryOffset.current)    * Math.min(delta * 6, 1)
-    happyOffset.current    += ((moodData?.mood === 'happy'     ? 1 : 0) - happyOffset.current)    * Math.min(delta * 6, 1)
+    const moodIn  = delta * 4   // entrée : ~0.25s
+    const moodOut = delta * 1.5 // sortie : ~0.67s (retour smooth au neutre)
+    surpriseOffset.current += ((moodData?.mood === 'surprised' ? 1 : 0) - surpriseOffset.current) * Math.min(moodData?.mood === 'surprised' ? moodIn : moodOut, 1)
+    angryOffset.current    += ((moodData?.mood === 'angry'     ? 1 : 0) - angryOffset.current)    * Math.min(moodData?.mood === 'angry'     ? moodIn : moodOut, 1)
+    happyOffset.current    += ((moodData?.mood === 'happy'     ? 1 : 0) - happyOffset.current)    * Math.min(moodData?.mood === 'happy'     ? moodIn : moodOut, 1)
     const s = surpriseOffset.current
     const a = angryOffset.current
     const h = happyOffset.current

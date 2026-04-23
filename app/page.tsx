@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import { BackgroundManager } from '@/components/BackgroundManager'
 import { useLipsync } from '@/hooks/useLipsync'
 import { useTimestampLipsync } from '@/hooks/useTimestampLipsync'
 import { useChat } from '@/hooks/useChat'
@@ -42,6 +43,22 @@ export default function Home() {
 
   // ── Mood ─────────────────────────────────────────────────────────────────
   const [moodData, setMoodData] = useState<{ mood: string; intensity: number } | undefined>()
+
+  // ── UI visibility ─────────────────────────────────────────────────────────
+  const [showUI, setShowUI] = useState(true)
+
+  // ── Background ────────────────────────────────────────────────────────────
+  const [backgrounds, setBackgrounds] = useState<string[]>([])
+  const [selectedBackground, setSelectedBackground] = useState<string>('')
+
+  useEffect(() => {
+    fetch('/api/backgrounds')
+      .then(r => r.json())
+      .then(({ backgrounds: list }: { backgrounds: string[] }) => {
+        setBackgrounds(list)
+        if (list.length > 0) setSelectedBackground(list[0])
+      })
+  }, [])
 
   // ── Bulle de dialogue ────────────────────────────────────────────────────
   const [bubbleText, setBubbleText] = useState<string | null>(null)
@@ -111,11 +128,12 @@ export default function Home() {
   return (
     <main style={{
       position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden',
-      background: 'radial-gradient(ellipse at 50% 30%, #ffffff 0%, #f4f6ff 50%, #eef2ff 100%)',
     }}>
 
+      <BackgroundManager currentBackground={selectedBackground || undefined} />
+
       {/* Canvas plein écran */}
-      <div style={{ position: 'absolute', inset: 0 }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <VrmExperience
           visemeValuesRef={lipsync.visemeValuesRef}
           isSpeaking={anyoneSpeaking}
@@ -136,75 +154,139 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── Sélecteurs + Expressions (top-left) ─────────────────────────── */}
-      <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {/* Titre Assistant */}
-        <span style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>
-          Assistant
-        </span>
-
-        {/* Modèle 3D */}
-        <select
-          value={selectedModelPath}
-          disabled={chatBusy}
-          onChange={(e) => { if (!chatBusy) { setSelectedModelPath(e.target.value); chat.reset() } }}
-          style={{
-            background: 'rgba(15, 23, 42, 0.55)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(99,102,241,0.5)',
-            borderRadius: 12,
-            color: '#94a3b8',
-            fontSize: 12,
-            padding: '8px 12px',
-            outline: 'none',
-            cursor: 'pointer',
-          }}
-        >
-          {VRM_MODELS.map((m) => (
-            <option key={m.path} value={m.path} style={{ background: '#0f172a' }}>
-              {m.label}
-            </option>
-          ))}
-        </select>
-
-        {/* Expressions */}
-        <span style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>
-          Expressions
-        </span>
-        {['neutral', 'happy', 'relaxed', 'angry', 'sad', 'surprised'].map(mood => (
+      {!showUI && (
+        <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <span style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.6)' }}>
+            Interface
+          </span>
           <button
-            key={mood}
-            onClick={() => { if (!chatBusy) setMoodData({ mood, intensity: 1.0 }) }}
+            onClick={() => setShowUI(true)}
             style={{
-              background: moodData?.mood === mood ? 'rgba(99,102,241,0.8)' : 'rgba(15, 23, 42, 0.55)',
+              background: 'rgba(15, 23, 42, 0.55)',
               backdropFilter: 'blur(12px)',
-              border: moodData?.mood === mood ? '1px solid rgba(129,140,248,1)' : '1px solid rgba(99,102,241,0.3)',
-              borderRadius: 8,
-              color: '#fff',
-              padding: '6px 14px',
-              fontSize: 12,
-              transition: 'all 0.2s',
-              width: '120px',
-              textAlign: 'center',
-              opacity: chatBusy ? 0.4 : 1,
-              cursor: chatBusy ? 'not-allowed' : 'pointer',
+              border: '1px solid rgba(99,102,241,0.3)',
+              borderRadius: 8, color: '#94a3b8',
+              padding: '6px 12px', fontSize: 12, cursor: 'pointer',
+              width: '120px', textAlign: 'center',
             }}
           >
-            {mood}
+            Show UI
           </button>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {showUI && (
+        <>
+          {/* ── Sélecteurs + Expressions + Backgrounds (top-left) ─────────── */}
+          <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.6)' }}>
+              Interface
+            </span>
+            {/* Bouton hide UI */}
+            <button
+              onClick={() => setShowUI(false)}
+              style={{
+                background: 'rgba(15, 23, 42, 0.55)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(99,102,241,0.3)',
+                borderRadius: 8, color: '#94a3b8',
+                padding: '6px 12px', fontSize: 12, cursor: 'pointer',
+                width: '120px', textAlign: 'center',
+              }}
+            >
+              Hide UI
+            </button>
+            <span style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.6)' }}>
+              Assistant
+            </span>
+            <select
+              value={selectedModelPath}
+              disabled={chatBusy}
+              onChange={(e) => { if (!chatBusy) { setSelectedModelPath(e.target.value); chat.reset() } }}
+              style={{
+                background: 'rgba(15, 23, 42, 0.55)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                border: '1px solid rgba(99,102,241,0.5)',
+                borderRadius: 12, color: '#94a3b8',
+                fontSize: 12, padding: '8px 12px',
+                outline: 'none', cursor: 'pointer', textAlign: 'center',
+              }}
+            >
+              {VRM_MODELS.map((m) => (
+                <option key={m.path} value={m.path} style={{ background: '#0f172a' }}>{m.label}</option>
+              ))}
+            </select>
+
+            <span style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4, textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.6)' }}>
+              Expressions
+            </span>
+            <button
+              onClick={() => { if (!chatBusy) setMoodData(undefined) }}
+              style={{
+                background: moodData === undefined ? 'rgba(99,102,241,0.8)' : 'rgba(15, 23, 42, 0.55)',
+                backdropFilter: 'blur(12px)',
+                border: moodData === undefined ? '1px solid rgba(129,140,248,1)' : '1px solid rgba(99,102,241,0.3)',
+                borderRadius: 8, color: '#fff', padding: '6px 14px',
+                fontSize: 12, transition: 'all 0.2s', width: '120px', textAlign: 'center',
+                opacity: chatBusy ? 0.4 : 1, cursor: chatBusy ? 'not-allowed' : 'pointer',
+              }}
+            >
+              Tracking
+            </button>
+            {['neutral', 'happy', 'relaxed', 'angry', 'sad', 'surprised'].map(mood => (
+              <button
+                key={mood}
+                onClick={() => { if (!chatBusy) setMoodData({ mood, intensity: 1.0 }) }}
+                style={{
+                  background: moodData?.mood === mood ? 'rgba(99,102,241,0.8)' : 'rgba(15, 23, 42, 0.55)',
+                  backdropFilter: 'blur(12px)',
+                  border: moodData?.mood === mood ? '1px solid rgba(129,140,248,1)' : '1px solid rgba(99,102,241,0.3)',
+                  borderRadius: 8, color: '#fff', padding: '6px 14px',
+                  fontSize: 12, transition: 'all 0.2s', width: '120px', textAlign: 'center',
+                  opacity: chatBusy ? 0.4 : 1, cursor: chatBusy ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {mood.charAt(0).toUpperCase() + mood.slice(1)}
+              </button>
+            ))}
+
+            <span style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4, textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.6)' }}>
+              Background
+            </span>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: 120 }}>
+              {backgrounds.map((path) => (
+                <button
+                  key={path}
+                  onClick={() => setSelectedBackground(path)}
+                  title={path.split('/').pop()?.replace(/^\d+_/, '').replace(/\.[^.]+$/, '') ?? path}
+                  style={{
+                    width: 52, height: 34,
+                    backgroundImage: `url(${path})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    border: selectedBackground === path
+                      ? '2px solid rgba(129,140,248,1)'
+                      : '2px solid rgba(255,255,255,0.2)',
+                    borderRadius: 6, cursor: 'pointer', padding: 0,
+                    transition: 'border 0.2s',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ── UI overlay ──────────────────────────────────────────────────── */}
-      <div style={{
+      {showUI && <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         gap: 10, padding: '0 20px 28px',
       }}>
 
         {/* Statut */}
-        <p style={{ color: voice.isRecording ? '#f87171' : '#64748b', fontSize: 12, margin: 0 }}>
+        <p style={{ color: voice.isRecording ? '#f87171' : '#64748b', fontSize: 12, margin: 0, textShadow: '0 1px 4px rgba(0,0,0,0.9)' }}>
           {voice.isRecording    ? '🎙 Enregistrement… (cliquez pour arrêter)'
            : voice.isTranscribing ? '⏳ Transcription…'
            : chat.isThinking    ? '🤔 Réflexion…'
@@ -386,7 +468,8 @@ export default function Home() {
 
 
 
-      </div>
+      </div>}
+
     </main>
   )
 }

@@ -123,7 +123,7 @@ export function FemaleAvatar({
     processFrame()
 
     // 2. Mouse look-at — désactivé quand un mood est actif
-    const hasMood = !!moodData && moodData.mood !== 'neutral'
+    const hasMood = !!moodData // neutral inclus — désactive aussi la souris
     const targetWeight = hasMood ? 0 : 1
     // Fondu lent vers 0 (0.8/s) et retour lent vers 1 (0.5/s)
     const weightSpeed = hasMood ? 0.8 : 0.5
